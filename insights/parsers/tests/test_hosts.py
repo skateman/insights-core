@@ -100,7 +100,7 @@ def test_ip_of():
     # One IP with multiple names
     assert ob.ip_of('localhost4.localdomain4') == '127.0.0.1'
     # IPv6 address, with single name
-    assert ob.ip_of('ipv6.example.com') == '2001:db8::36'
+    assert ob.ip_of('IPV6.example.com') == '2001:db8::36'
     # No host found = None
     assert ob.ip_of('foo.example.com') is None
 

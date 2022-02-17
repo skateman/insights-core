@@ -115,10 +115,11 @@ class Hosts(Parser):
 
     def ip_of(self, hostname):
         """
-        Return the (first) IP address given for this host name.  None is
-        returned if no IP address is found.
+        Return the (first) IP address given for this host name (case
+        insensitive).  None is returned if no IP address is found.
         """
+        hostname = hostname.lower()
         for ip, host_list in self._data.items():
-            if hostname in host_list:
+            if hostname in [h.lower() for h in host_list]:
                 return ip
         return None
