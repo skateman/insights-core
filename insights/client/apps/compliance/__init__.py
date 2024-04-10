@@ -128,6 +128,41 @@ class ComplianceClient:
 
         return tailoring_file_path
 
+    def assignable_policies(self):
+        self.inventory_id = self._get_inventory_id()
+        url = "https://{0}/compliance/v2/policies?filter=(os_major_version = {1} and os_minor_version = {2})"
+        response = self.conn.session.get(url.format(self.config.base_url, self.os_major_version(), self.os_minor_version()))
+        logger.debug("Content of the response {0} - {1}".format(response, response.content))
+        assigned_policies = [item["id"] for item in self.get_system_policies()]
+
+        if response.status_code == 200:
+            policies = response.json().get('data', [])
+            if not policies:
+                logger.warning("System is not assignable to any policy. Create supported policy using the Compliance web UI.\n")
+                return constants.sig_kill_bad
+            else:
+                print("Assigned     ID" + " " * 39 + "Title")
+                for policy in policies:
+                    is_assigned = policy['id'] in assigned_policies
+                    print("%-12s %-40s %s" % (is_assigned, policy['id'], policy['title']))
+            return 0
+        else:
+            logger.error("An error has occured while communicating with the API.\n")
+            return constants.sig_kill_bad
+
+    def policy_link(self, policy_id, dir):
+        self.inventory_id = self._get_inventory_id()
+        url = "https://{0}/compliance/v2/policies/{1}/systems/{2}"
+        response = getattr(self.conn.session, dir)(url.format(self.config.base_url, policy_id, self.inventory_id))
+        logger.debug("Content of the response {0} - {1}".format(response, response.content))
+
+        if response.status_code == 202:
+            logger.info("Operation completed successfully.\n")
+            return 0
+        else:
+            logger.error("An error has occured while communicating with the API.\n")
+            return constants.sig_kill_bad
+
     def get_system_policies(self):
         response = self.conn.session.get("https://{0}/compliance/v2/systems/{1}/policies".format(self.config.base_url, self.inventory_id))
         logger.debug("Content of the response {0} - {1}".format(response, response.content))

@@ -231,6 +231,41 @@ def test_get_ssg_version_with_failure(config, call):
 
 
 @patch("insights.client.config.InsightsConfig", base_url='localhost/app', systemid='', proxy=None)
+def test_assignable_policies(config):
+    compliance_client = ComplianceClient(config)
+    compliance_client._get_inventory_id = lambda: '068040f1-08c8-43e4-949f-7d6470e9111c'
+    compliance_client.get_system_policies = lambda: []
+    compliance_client.os_major_version = lambda: 9
+    compliance_client.os_minor_version = lambda: 3
+    compliance_client.conn.session.get = Mock(return_value=Mock(status_code=200, json=Mock(return_value={'data': [{"id": 123456, "title": "foo"}]})))
+    assert compliance_client.assignable_policies() == 0
+    url = "https://localhost/app/compliance/v2/policies?filter=(os_major_version = 9 and os_minor_version = 3)"
+    compliance_client.conn.session.get.assert_called_with(url)
+
+
+@patch("insights.client.config.InsightsConfig", base_url='localhost/app', systemid='', proxy=None)
+def test_policy_link_assign(config):
+    compliance_client = ComplianceClient(config)
+    compliance_client._get_inventory_id = lambda: '068040f1-08c8-43e4-949f-7d6470e9111c'
+    compliance_client.conn.session.patch = Mock(return_value=Mock(status_code=202, json=Mock(return_value={})))
+    policy_id = "d83ddbac-ab56-420b-9e71-878795375af5"
+    assert compliance_client.policy_link(policy_id, 'patch') == 0
+    url = "https://localhost/app/compliance/v2/policies/{0}/systems/{1}".format(policy_id, compliance_client.inventory_id)
+    compliance_client.conn.session.patch.assert_called_with(url)
+
+
+@patch("insights.client.config.InsightsConfig", base_url='localhost/app', systemid='', proxy=None)
+def test_policy_link_unassign(config):
+    compliance_client = ComplianceClient(config)
+    compliance_client._get_inventory_id = lambda: '068040f1-08c8-43e4-949f-7d6470e9111c'
+    compliance_client.conn.session.delete = Mock(return_value=Mock(status_code=202, json=Mock(return_value={})))
+    policy_id = "d83ddbac-ab56-420b-9e71-878795375af5"
+    assert compliance_client.policy_link(policy_id, 'delete') == 0
+    url = "https://localhost/app/compliance/v2/policies/{0}/systems/{1}".format(policy_id, compliance_client.inventory_id)
+    compliance_client.conn.session.delete.assert_called_with(url)
+
+
+@patch("insights.client.config.InsightsConfig", base_url='localhost/app', systemid='', proxy=None)
 def test_get_system_policies(config):
     compliance_client = ComplianceClient(config)
     compliance_client.inventory_id = '068040f1-08c8-43e4-949f-7d6470e9111c'
